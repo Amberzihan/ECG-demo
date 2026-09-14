@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/classical-8635817e-1c4b-4729-b587-b1bc9cad59f8/styles.css">
+<style>
+  body { background: #ffffff; margin: 0; font-family: Arial, Helvetica, sans-serif; }
+  a { color: #a06f24; }
+  a:hover { color: #7d5411; }
+</style>
+</helmet>
+<div style="background:#ffffff;color:#201f1d;font-family:Arial, Helvetica, sans-serif;min-height:100vh;padding:30px 40px 36px;box-sizing:border-box">
+  <div style="max-width:1500px;margin:0 auto">
+
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:28px;flex-wrap:wrap;border-bottom:2px solid #201f1d;padding-bottom:14px">
+      <h1 style="font-family:Arial, Helvetica, sans-serif;font-weight:700;font-size:34px;line-height:1.15;margin:0;letter-spacing:-0.01em">Ventricular action potential → ECG</h1>
+      <div style="font-size:20px;color:#444141">Drag any <span style="color:#a06f24;font-weight:700">gold handle</span> — the ECG redraws below.</div>
+    </div>
+
+    <div style="display:flex;gap:26px;align-items:baseline;flex-wrap:wrap;margin:20px 0 6px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font-size:20px;color:#444141">QRS</span>
+        <span style="font-size:38px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">{{ qrsMs }}</span>
+        <span style="font-size:20px;color:#444141">ms</span>
+      </div>
+      <div style="width:1px;height:32px;background:#d7d3d3"></div>
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font-size:20px;color:#444141">APD</span>
+        <span style="font-size:38px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">{{ apdMs }}</span>
+        <span style="font-size:20px;color:#444141">ms</span>
+      </div>
+      <div style="width:1px;height:32px;background:#d7d3d3"></div>
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font-size:20px;color:#444141">QT</span>
+        <span style="font-size:38px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;color:#a06f24">{{ qt }}</span>
+        <span style="font-size:20px;color:#444141">ms</span>
+      </div>
+      <div style="font-size:21px;font-weight:700;color:#a06f24">{{ status }}</div>
+      <div style="flex:1"></div>
+      <div onClick="{{ reset }}" style="padding:10px 22px;border:2px solid #a06f24;color:#a06f24;font-size:19px;font-weight:700;border-radius:4px;cursor:pointer;user-select:none" style-hover="background:#fff3e4">Reset</div>
+    </div>
+
+    <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #d7d3d3;padding-bottom:6px;margin-top:14px">
+      <h2 style="font-family:Arial, Helvetica, sans-serif;font-weight:700;font-size:23px;margin:0">Action potential — single ventricular myocyte</h2>
+      <span style="font-size:19px;color:#605d5d;white-space:nowrap">phase 0 dV/dt {{ dvdt }} V/s · plateau {{ plateauMs }} ms · phase 3 {{ repolMs }} ms</span>
+    </div>
+    <svg ref="{{ svgRef }}" viewBox="0 0 1000 340" onPointerDown="{{ onPointerDown }}" style="display:block;width:100%;height:auto;touch-action:none;cursor:ew-resize">
+      <defs>
+        <pattern id="gridAp" width="33.333" height="26" patternUnits="userSpaceOnUse">
+          <path d="M33.333 0 L0 0 0 26" fill="none" stroke="#eceaea" stroke-width="1"></path>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="1000" height="340" fill="url(#gridAp)"></rect>
+      <line x1="70" y1="{{ yZero }}" x2="1000" y2="{{ yZero }}" stroke="#c9c5c5" stroke-width="1" stroke-dasharray="3 5"></line>
+      <line x1="70" y1="{{ yRest }}" x2="1000" y2="{{ yRest }}" stroke="#c9c5c5" stroke-width="1" stroke-dasharray="3 5"></line>
+      <text x="64" y="{{ yZero }}" dy="5" text-anchor="end" style="font-family:Arial, Helvetica, sans-serif;font-size:17px;fill:#444141">0 mV</text>
+      <text x="64" y="{{ yRest }}" dy="5" text-anchor="end" style="font-family:Arial, Helvetica, sans-serif;font-size:17px;fill:#444141">−85 mV</text>
+
+      <path d="{{ apGhost }}" fill="none" stroke="#bab6b6" stroke-width="2" stroke-dasharray="7 6"></path>
+      <path d="{{ apPath }}" fill="none" stroke="#a06f24" stroke-width="3.6" stroke-linejoin="round"></path>
+
+      <g style="font-family:Arial, Helvetica, sans-serif;font-size:17px;font-weight:700;fill:#201f1d">
+        <text x="{{ lbl.p0x }}" y="{{ lbl.p0y }}" text-anchor="end">0 depolarization</text>
+        <text x="{{ lbl.p1x }}" y="{{ lbl.p1y }}">1 early repolarization</text>
+        <text x="{{ lbl.p2x }}" y="{{ lbl.p2y }}" text-anchor="start">2 plateau</text>
+        <text x="{{ lbl.p3x }}" y="{{ lbl.p3y }}">3 repolarization</text>
+        <text x="{{ lbl.p4x }}" y="{{ lbl.p4y }}">4 resting potential</text>
+      </g>
+
+      <g>
+        <line x1="{{ hC.x }}" y1="34" x2="{{ hC.x }}" y2="340" stroke="#e1ad66" stroke-width="1.5"></line>
+        <circle cx="{{ hC.x }}" cy="{{ hC.y }}" r="12" fill="#ffffff" stroke="#a06f24" stroke-width="3.2"></circle>
+        <circle cx="{{ hC.x }}" cy="{{ hC.y }}" r="4" fill="#a06f24"></circle>
+      </g>
+      <g>
+        <line x1="{{ hA.x }}" y1="34" x2="{{ hA.x }}" y2="340" stroke="#e1ad66" stroke-width="1.5"></line>
+        <circle cx="{{ hA.x }}" cy="{{ hA.y }}" r="12" fill="#ffffff" stroke="#a06f24" stroke-width="3.2"></circle>
+        <circle cx="{{ hA.x }}" cy="{{ hA.y }}" r="4" fill="#a06f24"></circle>
+      </g>
+      <g>
+        <line x1="{{ hB.x }}" y1="34" x2="{{ hB.x }}" y2="340" stroke="#e1ad66" stroke-width="1.5"></line>
+        <circle cx="{{ hB.x }}" cy="{{ hB.y }}" r="12" fill="#ffffff" stroke="#a06f24" stroke-width="3.2"></circle>
+        <circle cx="{{ hB.x }}" cy="{{ hB.y }}" r="4" fill="#a06f24"></circle>
+      </g>
+
+      <g>
+        <line x1="{{ apdBar.x1 }}" y1="{{ apdBar.y }}" x2="{{ apdBar.x2 }}" y2="{{ apdBar.y }}" stroke="#201f1d" stroke-width="1.5"></line>
+        <line x1="{{ apdBar.x1 }}" y1="{{ apdBar.yt }}" x2="{{ apdBar.x1 }}" y2="{{ apdBar.yb }}" stroke="#201f1d" stroke-width="1.5"></line>
+        <line x1="{{ apdBar.x2 }}" y1="{{ apdBar.yt }}" x2="{{ apdBar.x2 }}" y2="{{ apdBar.yb }}" stroke="#201f1d" stroke-width="1.5"></line>
+        {{ apdText }}
+      </g>
+    </svg>
+
+    <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #d7d3d3;padding-bottom:6px;margin-top:18px">
+      <h2 style="font-family:Arial, Helvetica, sans-serif;font-weight:700;font-size:23px;margin:0">Surface ECG — lead II, 60 bpm</h2>
+      <span style="font-size:19px;color:#605d5d;white-space:nowrap">dashed = baseline beat</span>
+    </div>
+    <svg viewBox="0 0 1000 270" style="display:block;width:100%;height:auto">
+      <defs>
+        <pattern id="gridEcg" width="33.333" height="26" patternUnits="userSpaceOnUse">
+          <path d="M33.333 0 L0 0 0 26" fill="none" stroke="#eceaea" stroke-width="1"></path>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="1000" height="270" fill="url(#gridEcg)"></rect>
+      <path d="{{ ecgGhost }}" fill="none" stroke="#bab6b6" stroke-width="2" stroke-dasharray="7 6"></path>
+      <path d="{{ ecgPath }}" fill="none" stroke="#201f1d" stroke-width="3.4" stroke-linejoin="round"></path>
+      <g>
+        <line x1="{{ qrsBar.x1 }}" y1="{{ qrsBar.y }}" x2="{{ qrsBar.x2 }}" y2="{{ qrsBar.y }}" stroke="#201f1d" stroke-width="2"></line>
+        <line x1="{{ qrsBar.x1 }}" y1="{{ qrsBar.yt }}" x2="{{ qrsBar.x1 }}" y2="{{ qrsBar.yb }}" stroke="#201f1d" stroke-width="2"></line>
+        <line x1="{{ qrsBar.x2 }}" y1="{{ qrsBar.yt }}" x2="{{ qrsBar.x2 }}" y2="{{ qrsBar.yb }}" stroke="#201f1d" stroke-width="2"></line>
+        {{ qrsText }}
+      </g>
+      <g>
+        <line x1="{{ qtBar.x1 }}" y1="{{ qtBar.y }}" x2="{{ qtBar.x2 }}" y2="{{ qtBar.y }}" stroke="#a06f24" stroke-width="2"></line>
+        <line x1="{{ qtBar.x1 }}" y1="{{ qtBar.yt }}" x2="{{ qtBar.x1 }}" y2="{{ qtBar.yb }}" stroke="#a06f24" stroke-width="2"></line>
+        <line x1="{{ qtBar.x2 }}" y1="{{ qtBar.yt }}" x2="{{ qtBar.x2 }}" y2="{{ qtBar.yb }}" stroke="#a06f24" stroke-width="2"></line>
+        {{ qtText }}
+      </g>
+      <g style="font-family:Arial, Helvetica, sans-serif;font-size:18px;font-weight:700;fill:#201f1d">
+        <text x="{{ ecgLbl.px }}" y="{{ ecgLbl.py }}" text-anchor="middle">P</text>
+        <text x="{{ ecgLbl.tx }}" y="{{ ecgLbl.ty }}" text-anchor="middle">T</text>
+      </g>
+    </svg>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;dangerThreshold&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:500,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:440,&quot;max&quot;:560,&quot;step&quot;:10,&quot;unit&quot;:&quot;ms&quot;,&quot;section&quot;:&quot;Clinical&quot;}}">
+const W = 1000, TWIN = 1300;
+const STIM = 220;                 // ms: AP upstroke = QRS onset
+const NOTCH_D = 12;               // phase 1 duration after the upstroke
+const U_DEF = 4, P_DEF = 260, R_DEF = 125;
+const U_MIN = 2, U_MAX = 48, P_MIN = 100, P_MAX = 420, R_MIN = 50, R_MAX = 320;
+const QRS_BASE = 90;              // QRS at U_DEF
+
+const xOf = t => (t / TWIN) * W;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const smooth = u => 0.5 - 0.5 * Math.cos(Math.PI * clamp(u, 0, 1));
+const svgLabel = (x, y, dy, fill, size, text) => React.createElement("text", {
+  x, y, dy, textAnchor: "middle",
+  style: { fontFamily: "Arial, Helvetica, sans-serif", fontSize: size + "px", fontWeight: 700, fill, fontVariantNumeric: "tabular-nums" },
+}, text);
+const qrsOf = U => Math.round(QRS_BASE + (U - U_DEF) * 2.6);
+
+class Component extends DCLogic {
+  state = { U: U_DEF, P: P_DEF, R: R_DEF, drag: null };
+
+  componentDidMount() {
+    this._move = e => {
+      if (!this.state.drag || !this.svg) return;
+      const r = this.svg.getBoundingClientRect();
+      const t = ((e.clientX - r.left) / r.width) * TWIN;
+      const { U, P } = this.state;
+      if (this.state.drag === "C") this.setState({ U: Math.round(clamp(t - STIM, U_MIN, U_MAX)) });
+      else if (this.state.drag === "A") this.setState({ P: Math.round(clamp(t - STIM - U - NOTCH_D, P_MIN, P_MAX)) });
+      else this.setState({ R: Math.round(clamp(t - STIM - U - NOTCH_D - P, R_MIN, R_MAX)) });
+    };
+    this._up = () => this.state.drag && this.setState({ drag: null });
+    window.addEventListener("pointermove", this._move);
+    window.addEventListener("pointerup", this._up);
+  }
+  componentWillUnmount() {
+    window.removeEventListener("pointermove", this._move);
+    window.removeEventListener("pointerup", this._up);
+  }
+
+  yAp(mv) { return 46 + ((40 - mv) / 140) * 266; }
+  yEcg(mv) { return 40 + ((1.2 - mv) / 1.7) * 196; }
+
+  apV(t, U, P, R) {
+    const tau = t - STIM;
+    if (tau <= 0) return -85;
+    if (tau < U) return -85 + 115 * smooth(tau / U) * 0.5 + 57.5 * (tau / U);
+    const n = U + NOTCH_D;
+    if (tau < n) return 30 - 20 * smooth((tau - U) / NOTCH_D);
+    const tp = n + P;
+    if (tau < tp) return 10 - 10 * ((tau - n) / P);
+    if (tau < tp + R) return -85 * smooth((tau - tp) / R);
+    return -85;
+  }
+
+  apPathFor(U, P, R) {
+    let d = "";
+    const t0 = 92;
+    for (let i = 0; i <= 560; i++) {
+      const t = t0 + (i / 560) * (TWIN - t0);
+      d += (i ? "L" : "M") + xOf(t).toFixed(2) + " " + this.yAp(this.apV(t, U, P, R)).toFixed(2) + " ";
+    }
+    return d;
+  }
+
+  tShape(R) {
+    return { tw: clamp(R * 1.7, 90, 460), amp: 0.34 * clamp(150 / Math.max(R, 1), 0.5, 1.1) };
+  }
+
+  ecgV(t, qt, qrsW, R) {
+    let v = 0;
+    if (t > 70 && t < 190) v += 0.18 * Math.pow(Math.sin(Math.PI * (t - 70) / 120), 2);
+    const q = t - STIM, k = qrsW / QRS_BASE;
+    const rAmp = 1.05 * Math.pow(1 / k, 0.4);
+    if (q >= 0 && q < 13 * k) v += -0.06 * Math.sin(Math.PI * q / (13 * k));
+    else if (q >= 13 * k && q < 55 * k) v += rAmp * Math.pow(Math.sin(Math.PI * (q - 13 * k) / (42 * k)), 1.2);
+    else if (q >= 55 * k && q < 90 * k) v += -0.2 * Math.sin(Math.PI * (q - 55 * k) / (35 * k));
+    const { tw, amp } = this.tShape(R);
+    const te = STIM + qt, ts = te - tw;
+    if (t > ts && t < te) {
+      const u = (t - ts) / tw;
+      v += amp * Math.pow(Math.sin(Math.PI * u), 1.55) * (1 + 0.25 * (u - 0.5));
+    }
+    return v;
+  }
+
+  ecgPathFor(qt, qrsW, R) {
+    let d = "";
+    for (let i = 0; i <= 700; i++) {
+      const t = (i / 700) * TWIN;
+      d += (i ? "L" : "M") + xOf(t).toFixed(2) + " " + this.yEcg(this.ecgV(t, qt, qrsW, R)).toFixed(2) + " ";
+    }
+    return d;
+  }
+
+  renderVals() {
+    const { U, P, R } = this.state;
+    const apd = U + NOTCH_D + P + R;
+    const qrsW = qrsOf(U);
+    const qt = apd;                       // T ends where phase 3 ends
+    const baseQrs = qrsOf(U_DEF);
+    const baseQt = U_DEF + NOTCH_D + P_DEF + R_DEF;
+    const threshold = this.props.dangerThreshold ?? 500;
+
+    let status = "Normal intervals";
+    if (qrsW >= 120 && qt >= threshold) status = "Wide QRS + markedly prolonged QT";
+    else if (qt >= threshold) status = "Markedly prolonged QT — torsades risk";
+    else if (qrsW >= 120) status = "Wide QRS — slowed conduction";
+    else if (qt >= 460) status = "Prolonged QT";
+    else if (qt >= 440) status = "Borderline QT";
+
+    const upEnd = STIM + U;
+    const tpEnd = upEnd + NOTCH_D + P;
+    const apEnd = tpEnd + R;
+    const { tw, amp } = this.tShape(R);
+
+    return {
+      svgRef: el => { this.svg = el; },
+      onPointerDown: e => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * W;
+        const d = [["C", Math.abs(x - xOf(upEnd))], ["A", Math.abs(x - xOf(tpEnd))], ["B", Math.abs(x - xOf(apEnd))]];
+        d.sort((a, b) => a[1] - b[1]);
+        this.setState({ drag: d[0][0] });
+      },
+      apPath: this.apPathFor(U, P, R),
+      apGhost: this.apPathFor(U_DEF, P_DEF, R_DEF),
+      ecgPath: this.ecgPathFor(qt, qrsW, R),
+      ecgGhost: this.ecgPathFor(baseQt, baseQrs, R_DEF),
+      yZero: this.yAp(0), yRest: this.yAp(-85),
+      apdMs: apd, plateauMs: P, repolMs: R, qrsMs: qrsW, qt, status,
+      apdText: svgLabel(xOf((STIM + apEnd) / 2), 26, -7, "#201f1d", 18, "APD " + apd + " ms"),
+      qtText: svgLabel(xOf(STIM + qt / 2), 24, -8, "#a06f24", 19, "QT " + qt + " ms"),
+      qrsText: svgLabel(xOf(STIM + qrsW / 2), 248, 18, "#201f1d", 18, "QRS " + qrsW + " ms"),
+      dvdt: Math.round(115 / U),
+      hC: { x: xOf(upEnd), y: this.yAp(30) },
+      hA: { x: xOf(tpEnd), y: this.yAp(0) },
+      hB: { x: xOf(apEnd), y: this.yAp(-85) },
+      apdBar: { x1: xOf(STIM), x2: xOf(apEnd), xm: xOf((STIM + apEnd) / 2), y: 26, yt: 19, yb: 33 },
+      qtBar: { x1: xOf(STIM), x2: xOf(STIM + qt), xm: xOf(STIM + qt / 2), y: 24, yt: 17, yb: 31 },
+      qrsBar: { x1: xOf(STIM), x2: xOf(STIM + qrsW), xm: xOf(STIM + qrsW / 2), y: 248, yt: 241, yb: 255 },
+      lbl: {
+        p0x: xOf(STIM) - 12, p0y: this.yAp(-16),
+        p1x: xOf(upEnd + NOTCH_D) + 14, p1y: this.yAp(30) - 16,
+        p2x: xOf(upEnd + NOTCH_D + P * 0.3), p2y: this.yAp(10) + 30,
+        p3x: xOf(tpEnd + R * 0.8) + 16, p3y: this.yAp(-38),
+        p4x: xOf(apEnd) + 20, p4y: this.yAp(-85) - 14,
+      },
+      ecgLbl: {
+        px: xOf(130), py: this.yEcg(0.18) - 10,
+        tx: xOf(STIM + qt - tw / 2), ty: this.yEcg(amp) - 12,
+      },
+      reset: () => this.setState({ U: U_DEF, P: P_DEF, R: R_DEF }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
